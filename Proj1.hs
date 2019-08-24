@@ -31,7 +31,7 @@ cardsWithSameRank :: [Card] -> [Card] -> Int
 cardsWithSameRank [] [] = 0
 cardsWithSameRank x [] = 0
 cardsWithSameRank [] x = 0
---cardsWithSameRank guesses answers = length (removeDuplicates [ rank | (Card _ rank) <- answers, (Card _ rank') <- guesses, rank == rank' ])
+cardsWithSameRank guesses answers = countPairs [ rank | (Card _ rank) <- answers ] [ rank | (Card _ rank) <- guesses ]
 
 -- returns number of cards from answer with lower rank than lowest ranking card in guesses
 -- takes in guesses as first parameter and answers as second parameter
@@ -70,9 +70,11 @@ cardsWithSameSuit :: [Card] -> [Card] -> Int
 cardsWithSameSuit [] [] = 0
 cardsWithSameSuit x [] = 0
 cardsWithSameSuit [] x = 0
-cardsWithSameSuit guesses answers = findSuit [ suit | (Card suit _) <- answers ] [ suit | (Card suit _) <- guesses ]
+cardsWithSameSuit guesses answers = countPairs [ suit | (Card suit _) <- answers ] [ suit | (Card suit _) <- guesses ]
 
-findSuit :: (Eq a) => [a] -> [a] -> Int
+
+-- iterate through two lists and count the pairs
+countPairs :: (Eq a) => [a] -> [a] -> Int
 findSuit [] [] = 0
 findSuit x [] = 0
 findSuit [] x = 0
