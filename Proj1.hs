@@ -75,9 +75,9 @@ cardsWithSameSuit guesses answers = countPairs [ suit | (Card suit _) <- answers
 
 -- iterate through two lists and count the pairs
 countPairs :: (Eq a) => [a] -> [a] -> Int
-findSuit [] [] = 0
-findSuit x [] = 0
-findSuit [] x = 0
-findSuit (x:xs) ys 
-    | x `elem` ys = 1 + findSuit xs (delete x ys)
-    | otherwise = findSuit xs ys
+countPairs [] [] = 0
+countPairs x [] = 0
+countPairs [] x = 0
+countPairs (x:xs) ys 
+    | x `elem` ys = 1 + countPairs xs (delete x ys)
+    | otherwise = countPairs xs ys
