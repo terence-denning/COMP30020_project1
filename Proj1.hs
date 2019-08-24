@@ -1,6 +1,7 @@
 --module Proj1 (feedback, initialGuess, nextGuess, GameState) where
 
 import Card
+import Data.List
 
 feedback :: [Card] -> [Card] -> (Int,Int,Int,Int,Int)
 feedback [] [] = (0,0,0,0,0)
@@ -30,7 +31,7 @@ cardsWithSameRank :: [Card] -> [Card] -> Int
 cardsWithSameRank [] [] = 0
 cardsWithSameRank x [] = 0
 cardsWithSameRank [] x = 0
-cardsWithSameRank guesses answers = length (removeDuplicates [ rank | (Card _ rank) <- answers, (Card _ rank') <- guesses, rank == rank' ])
+--cardsWithSameRank guesses answers = length (removeDuplicates [ rank | (Card _ rank) <- answers, (Card _ rank') <- guesses, rank == rank' ])
 
 -- returns number of cards from answer with lower rank than lowest ranking card in guesses
 -- takes in guesses as first parameter and answers as second parameter
@@ -69,18 +70,12 @@ cardsWithSameSuit :: [Card] -> [Card] -> Int
 cardsWithSameSuit [] [] = 0
 cardsWithSameSuit x [] = 0
 cardsWithSameSuit [] x = 0
-cardsWithSameSuit guesses answers = length (removeDuplicates [ suit | (Card suit _) <- answers, (Card suit' _) <- guesses, suit == suit' ])
+cardsWithSameSuit guesses answers = findSuit [ suit | (Card suit _) <- answers ] [ suit | (Card suit _) <- guesses ]
 
--- remove a card from a list of cards
-removeCard :: Card -> [Card] -> [Card]
-removeCard _ [] = []
-removeCard ( Card suit rank ) ( ( Card suit' rank' ) : cards )
-    | suit == suit' && rank == rank' = removeCard ( Card suit rank ) cards
-    | otherwise = ( Card suit' rank' ) : removeCard ( Card suit rank ) cards
-
-
-removeDuplicates :: (Eq a) => [a] -> [a]
-removeDuplicates [] = []
-removeDuplicates (x:xs)
-    | x `elem` xs = removeDuplicates xs
-    | otherwise = x : removeDuplicates xs
+findSuit :: (Eq a) => [a] -> [a] -> Int
+findSuit [] [] = 0
+findSuit x [] = 0
+findSuit [] x = 0
+findSuit (x:xs) ys 
+    | x `elem` ys = 1 + findSuit xs (delete x ys)
+    | otherwise = findSuit xs ys
