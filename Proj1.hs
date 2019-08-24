@@ -30,7 +30,7 @@ cardsWithSameRank :: [Card] -> [Card] -> Int
 cardsWithSameRank [] [] = 0
 cardsWithSameRank x [] = 0
 cardsWithSameRank [] x = 0
-cardsWithSameRank guesses answers = length [ rank | (Card _ rank) <- answers, rank `elem` [ rank | (Card _ rank) <- guesses ] ] 
+cardsWithSameRank guesses answers = length (removeDuplicates [ rank | (Card _ rank) <- answers, (Card _ rank') <- guesses, rank == rank' ])
 
 -- returns number of cards from answer with lower rank than lowest ranking card in guesses
 -- takes in guesses as first parameter and answers as second parameter
@@ -69,7 +69,7 @@ cardsWithSameSuit :: [Card] -> [Card] -> Int
 cardsWithSameSuit [] [] = 0
 cardsWithSameSuit x [] = 0
 cardsWithSameSuit [] x = 0
-cardsWithSameSuit guesses answers = length [ suit | (Card suit _) <- answers, suit `elem` [ suit | (Card suit _) <- guesses ] ] 
+cardsWithSameSuit guesses answers = length (removeDuplicates [ suit | (Card suit _) <- answers, (Card suit' _) <- guesses, suit == suit' ])
 
 -- remove a card from a list of cards
 removeCard :: Card -> [Card] -> [Card]
@@ -77,3 +77,10 @@ removeCard _ [] = []
 removeCard ( Card suit rank ) ( ( Card suit' rank' ) : cards )
     | suit == suit' && rank == rank' = removeCard ( Card suit rank ) cards
     | otherwise = ( Card suit' rank' ) : removeCard ( Card suit rank ) cards
+
+
+removeDuplicates :: (Eq a) => [a] -> [a]
+removeDuplicates [] = []
+removeDuplicates (x:xs)
+    | x `elem` xs = removeDuplicates xs
+    | otherwise = x : removeDuplicates xs
