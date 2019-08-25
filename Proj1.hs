@@ -3,11 +3,28 @@
 import Card
 import Data.List
 
+-- game state takes _ parameters:
+-- Once bottom and top range is established as well as invalid suits, the algorithm
+-- will generate all potential cards and then search them
+
+-- [Card] -> all the potential cards
+-- Throwaways -> holds range and suit values to filter on, once all are empty then card generation can begin
+-- ValidSuits -> Valid suits 
+-- ValidRange -> Valid Range of cards
+-- Bool -> initial validation complete
+
+-- Bool -> answer is correct, exit game 
+data GameState = GameState [Card] Throwaways Bool ValidSuits ValidRange | Empty
+
+data Throwaways = tas [Rank] [Suits]
+data ValidRange = Range Rank Rank
+data ValidSuits = ValidSuits [Suit]
+
 feedback :: [Card] -> [Card] -> (Int,Int,Int,Int,Int)
 feedback [] [] = (0,0,0,0,0)
 feedback x [] = (0,0,0,0,0)
 feedback [] x = (0,0,0,0,0)
-feedback guesses answers = ( 
+feedback answers guesses = ( 
     numCorrectCards guesses answers,
     cardsWithLowerRank guesses answers,
     cardsWithSameRank guesses answers,
@@ -20,6 +37,33 @@ feedback guesses answers = (
 
 
 --nextGuess :: ([Card],GameState) → (Int,Int,Int,Int,Int) → ([Card],GameState)
+
+
+generatePotentialHands :: Int -> [[Card]]
+generatePotentialHands numCards 
+    | numCards == 2 = [ [card]++[card'] | card <- deck, card' <- deck, card /= card' ]
+    | numCards == 3 = [ [card]++[card']++[card''] 
+                        | card <- deck
+                        , card' <- deck
+                        , card'' <- deck
+                        , card /= card' 
+                        , card' /= card''
+                        , card /= card'' 
+                    ]
+    | numCards == 4 = [ [card]++[card']++[card'']++[card4]
+                        | card <- deck
+                        , card' <- deck
+                        , card'' <- deck
+                        , card4 <- deck
+                        , card /= card' 
+                        , card' /= card''
+                        , card /= card'' 
+                        , card4 /= card
+                        , card4 /= card' 
+                        , card4 /= card''
+                    ]
+    | otherwise = [[]]
+    where deck = [minBound..maxBound]::[Card]
 
 
 -- recieves current guess and answer hand, determines how many cards are found
