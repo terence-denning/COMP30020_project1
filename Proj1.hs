@@ -36,7 +36,7 @@ feedback answers guesses = (
 initialGuess :: Int -> ([Card],GameState)
 initialGuess 0 = ([], Empty)
 initialGuess x
-    | x == 2 = ([ Card Diamond R2, Card Diamond R3 ], 
+    | x == 2 = ([ Card Club R2, Card Club R3 ], 
                (GameState 
                     [] 
                     ( Filters ([minBound..maxBound]::[Rank]) ([minBound..maxBound]::[Suit]) ) 
@@ -45,8 +45,12 @@ initialGuess x
                     ( ValidRange R2 Ace )
                 ))
     | otherwise = ([], Empty)
-    
---nextGuess :: ([Card],GameState) → (Int,Int,Int,Int,Int) → ([Card],GameState)
+
+nextGuess :: ([Card],GameState) -> (Int,Int,Int,Int,Int) -> ([Card],GameState)
+nextGuess ( 
+            cards, 
+            ( GameState potentialCards (Filters franks fsuits) isValidated (ValidSuits suits) (ValidRange low high) ) 
+          )  (matchs, lowRank, sameRank, highRank, sameSuit ) = ([], Empty)
 
 
 generatePotentialHands :: Int -> [[Card]]
