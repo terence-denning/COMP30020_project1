@@ -8,16 +8,16 @@ import Data.List
 -- will generate all potential cards and then search them
 
 -- [Card] -> all the potential cards
--- Throwaways -> holds range and suit values to filter on, once all are empty then card generation can begin
+-- Filters -> holds range and suit values to filter on, once all are empty then card generation can begin
 -- ValidSuits -> Valid suits 
 -- ValidRange -> Valid Range of cards
 -- Bool -> initial validation complete
 
 -- Bool -> answer is correct, exit game 
-data GameState = GameState [Card] Throwaways Bool ValidSuits ValidRange | Empty
+data GameState = GameState [Card] Filters Bool ValidSuits ValidRange | Empty
 
-data Throwaways = tas [Rank] [Suits]
-data ValidRange = Range Rank Rank
+data Filters = Filters [Rank] [Suit]
+data ValidRange = ValidRange Rank Rank
 data ValidSuits = ValidSuits [Suit]
 
 feedback :: [Card] -> [Card] -> (Int,Int,Int,Int,Int)
@@ -33,9 +33,19 @@ feedback answers guesses = (
     )
 
 
---initialGuess :: Int → ([Card],GameState)
-
-
+initialGuess :: Int -> ([Card],GameState)
+initialGuess 0 = ([], Empty)
+initialGuess x
+    | x == 2 = ([ Card Diamond R2, Card Diamond R3 ], 
+               (GameState 
+                    [] 
+                    ( Filters ([minBound..maxBound]::[Rank]) ([minBound..maxBound]::[Suit]) ) 
+                    False 
+                    ( ValidSuits ([minBound..maxBound]::[Suit]) )
+                    ( ValidRange R2 Ace )
+                ))
+    | otherwise = ([], Empty)
+    
 --nextGuess :: ([Card],GameState) → (Int,Int,Int,Int,Int) → ([Card],GameState)
 
 
