@@ -17,7 +17,7 @@ feedback answers guesses = (
     )
 
 -- GameState FilteredCards isFiltered ValidSuits
-data GameState = State [Card] Bool [Suit] [Suit] | NULL
+data GameState = State [[Card]] Bool [Suit] [Suit] | NULL
 
 initialGuess :: Int -> ([Card],GameState)
 initialGuess 0 = ([], NULL)
@@ -25,12 +25,20 @@ initialGuess n = ( (sameSuitGuess n Diamond), state)
             where state = (State [] False [Club, Spade, Heart] [] )
 
 nextGuess :: ([Card],GameState) -> (Int,Int,Int,Int,Int) -> ([Card],GameState)
-nextGuess (lastGuess, (State fc isf (f:fs) vs)) (matches, lowRank, sameRank, highRank, sameSuit)
-    | filtering = (sameSuitGuess (length lastGuess) f, (State fc isf fs (f:vs) ))
-    | stopFiltering = ( [], (State (generateSubDeck vs) True [] (f:vs) ) )
+nextGuess (lastGuess, (State (guess:fc) isf (f:fs) vs)) (matches, lowRank, sameRank, highRank, sameSuit)
+    | foundSuit = ( sameSuitGuess ( length lastGuess ) f, ( State (guess:fc) isf fs (f:vs) ))
+    | didntFindSuit = ( sameSuitGuess ( length lastGuess ) f, ( State (guess:fc) isf fs vs ))
+    | stopFiltering = ( head filteredDeck, (State (tail filteredDeck) True [] (f:vs) ) )
+    | otherwise = (guess, (State fc True (f:fs) vs ))
     where 
-        filtering = sameSuit > 0 && fs /= [] && isf == False
+        foundSuit = sameSuit > 0 && fs /= [] && isf == False
+        didntFindSuit = sameSuit == 0 && fs /= [] && isf == False
         stopFiltering = fs == [] && isf == False
+        filteredDeck = generatePotentialHands (length lastGuess) ( generateSubDeck vs )
+
+testing :: [Int] -> [Int]
+testing (x:xs) = (x:xs)
+
 
 -- generates a deck of cards based on available suits
 generateSubDeck :: [Suit] -> [Card]
@@ -45,8 +53,8 @@ sameSuitGuess numCards suit
     | otherwise = []
 
 -- generates all potential hands from n number of cards
-generatePotentialHands :: Int -> [[Card]]
-generatePotentialHands numCards 
+generatePotentialHands :: Int -> [Card] -> [[Card]]
+generatePotentialHands numCards deck
     | numCards == 2 = [ [card]++[card'] | card <- deck, card' <- deck, card /= card' ]
     | numCards == 3 = [ [card]++[card']++[card''] 
                         | card <- deck
@@ -69,7 +77,6 @@ generatePotentialHands numCards
                         , card4 /= card''
                     ]
     | otherwise = [[]]
-    where deck = [minBound..maxBound]::[Card]
 
 
 -- recieves current guess and answer hand, determines how many cards are found
