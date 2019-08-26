@@ -3,22 +3,6 @@
 import Card
 import Data.List
 
--- game state takes _ parameters:
--- Once bottom and top range is established as well as invalid suits, the algorithm
--- will generate all potential cards and then search them
-
--- [Card] -> all the potential cards
--- Filters -> holds range and suit values to filter on, once all are empty then card generation can begin
--- ValidSuits -> Valid suits 
--- ValidRange -> Valid Range of cards
--- Bool -> initial validation complete
-
--- Bool -> answer is correct, exit game 
-data GameState = GameState [Card] Filters Bool ValidSuits ValidRange | Empty
-
-data Filters = Filters [Rank] [Suit]
-data ValidRange = ValidRange Rank Rank
-data ValidSuits = ValidSuits [Suit]
 
 feedback :: [Card] -> [Card] -> (Int,Int,Int,Int,Int)
 feedback [] [] = (0,0,0,0,0)
@@ -32,27 +16,35 @@ feedback answers guesses = (
     cardsWithSameSuit guesses answers 
     )
 
+-- GameState FilteredCards isFiltered ValidSuits
+data GameState = State [Card] Bool [Suit] [Suit] | NULL
 
 initialGuess :: Int -> ([Card],GameState)
-initialGuess 0 = ([], Empty)
-initialGuess x
-    | x == 2 = ([ Card Club R2, Card Club R3 ], 
-               (GameState 
-                    [] 
-                    ( Filters ([minBound..maxBound]::[Rank]) ([minBound..maxBound]::[Suit]) ) 
-                    False 
-                    ( ValidSuits ([minBound..maxBound]::[Suit]) )
-                    ( ValidRange R2 Ace )
-                ))
-    | otherwise = ([], Empty)
+initialGuess 0 = ([], NULL)
+initialGuess n = ( (sameSuitGuess n Diamond), state)
+            where state = (State [] False [Club, Spade, Heart] [] )
 
 nextGuess :: ([Card],GameState) -> (Int,Int,Int,Int,Int) -> ([Card],GameState)
-nextGuess ( 
-            cards, 
-            ( GameState potentialCards (Filters franks fsuits) isValidated (ValidSuits suits) (ValidRange low high) ) 
-          )  (matchs, lowRank, sameRank, highRank, sameSuit ) = ([], Empty)
+nextGuess (lastGuess, (State fc isf (f:fs) vs)) (matches, lowRank, sameRank, highRank, sameSuit)
+    | filtering = (sameSuitGuess (length lastGuess) f, (State fc isf fs (f:vs) ))
+    | stopFiltering = ( [], (State (generateSubDeck vs) True [] (f:vs) ) )
+    where 
+        filtering = sameSuit > 0 && fs /= [] && isf == False
+        stopFiltering = fs == [] && isf == False
 
+-- generates a deck of cards based on available suits
+generateSubDeck :: [Suit] -> [Card]
+generateSubDeck suits = [ (Card suit rank) | suit <- suits, rank <- [minBound..maxBound]::[Rank] ]
 
+-- makes a guess using n number of cards with the same suit
+sameSuitGuess :: Int -> Suit -> [Card]
+sameSuitGuess numCards suit
+    | numCards == 2 = [Card suit R2, Card suit R3]
+    | numCards == 3 = [Card suit R2, Card suit R3, Card suit R4]
+    | numCards == 4 = [Card suit R2, Card suit R3, Card suit R4, Card suit R5]
+    | otherwise = []
+
+-- generates all potential hands from n number of cards
 generatePotentialHands :: Int -> [[Card]]
 generatePotentialHands numCards 
     | numCards == 2 = [ [card]++[card'] | card <- deck, card' <- deck, card /= card' ]
