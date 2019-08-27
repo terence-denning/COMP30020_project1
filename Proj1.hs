@@ -32,10 +32,10 @@ nextGuess ( ( (Card lsuit lrank):lastGuess ), (State [] (suit:fs) [])) (matches,
 
 -- case where we have searched through all filterable suits
 nextGuess (( (Card lsuit lrank):lastGuess ), (State [] [] vs)) (matches, lowRank, sameRank, highRank, sameSuit) 
-    | sameSuit == 1 = ( head filteredDeck, (State (tail filteredDeck) [] (lsuit:vs) ) )
+    | sameSuit == 1 = ( head filteredDeck', (State (tail filteredDeck') [] (lsuit:vs) ) )
     | sameSuit == 0 = ( head filteredDeck, (State (tail filteredDeck) [] vs ) )
     where filteredDeck = generatePotentialHands (length ((Card lsuit lrank):lastGuess)) ( generateSubDeck vs )
-    
+          filteredDeck' = generatePotentialHands (length ((Card lsuit lrank):lastGuess)) ( generateSubDeck (lsuit:vs) )
 
 -- case where we have found atleast 1 suit but are still filtering
 nextGuess ( ((Card lsuit lrank):lastGuess), (State [] (suit:fs) vs) ) (matches, lowRank, sameRank, highRank, sameSuit)
