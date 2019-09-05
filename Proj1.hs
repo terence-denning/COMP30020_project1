@@ -16,50 +16,49 @@ feedback answers guesses = (
     cardsWithSameSuit guesses answers 
     )
 
--- GameState FilteredCards AlreadyGuessed SuitFilters ValidSuits
-data GameState = State [[Card]] [[Card]] [Suit] [Suit] | NULL
+-- GameState FilteredCards AlreadyGuessed SuitFilters ValidSuits Matches
+data GameState = State [[Card]] [[Card]] [Suit] [Suit] [[[Card]]] | NULL
 
 initialGuess :: Int -> ([Card],GameState)
-initialGuess n = ( (sameSuitGuess n Diamond), (State [] [] [Club, Spade, Heart] [] ))
+initialGuess n = ( (sameSuitGuess n Diamond), (State [] [sameSuitGuess n Diamond] [Club, Spade, Heart] [] []))
 
 
 -- next guess
 nextGuess :: ([Card],GameState) -> (Int,Int,Int,Int,Int) -> ([Card],GameState)
 
--- case where we are filtering and no suits are found
-nextGuess (((Card lsuit lrank):lastGuess), (State [] [] (suit:fs) [])) (_, _, _, _, sameSuit)
-    | sameSuit == 1 = ( sameSuitGuess guessLength suit, ( State [] [lastHand] fs (lsuit:[]) ))
-    | sameSuit == 0 = ( sameSuitGuess guessLength suit, ( State [] [lastHand] fs [] ))
-    where guessLength = length ( (Card lsuit lrank):lastGuess )
-          lastHand = (Card lsuit lrank):lastGuess
+-- filter through cards based on valid suits
+nextGuess ( (Card lsuit lrank):lastGuess, (State [] guessed (s:suitFilters) suits []) ) (matches, lowRank, midRank, highRank, suitMatches)
+    | (s:suitFilters) /= [] && suitMatches > 0 = ( guess, (State [] guessed' suitFilters foundSuit []))
+    | (s:suitFilters) /= [] = ( guess, (State [] guessed' suitFilters suits []))
+    where dlen = length ((Card lsuit lrank):lastGuess)
+          guess = sameSuitGuess dlen s
+          guessed' = guess:guessed
+          foundSuit = lsuit:suits
 
--- case where we have searched through all filterable suits
--- generate new deck based on filtered suits
-nextGuess (((Card lsuit lrank):lastGuess), (State [] guessed [] vs)) (_, _, _, _, sameSuit) 
-    | sameSuit == 1 = ( head filteredHands', (State (tail filteredHands') (lastHand:guessed) [] (lsuit:vs) ) )
-    | sameSuit == 0 = ( head filteredHands, (State (tail filteredHands) (lastHand:guessed) [] vs ) )
-    where filteredHands = filterHands (generatePotentialHands lengthLastHand ( generateSubDeck vs ) ) guessed 
-          filteredHands' = filterHands (generatePotentialHands lengthLastHand ( generateSubDeck (lsuit:vs) ) ) guessed
-          lastHand = (Card lsuit lrank):lastGuess
-          lengthLastHand = length ((Card lsuit lrank):lastGuess)
+-- generate new deck
+nextGuess ( lastGuess, (State [] guessed [] suits []) ) _ = ( guess, (State (tail hands) guessed' [] [] []) )
+    where hands = buildHands (length lastGuess) suits guessed
+          guess = head hands
+          guessed' = guess:guessed
 
--- case where we have found atleast 1 suit but are still filtering
-nextGuess ( ((Card lsuit lrank):lastGuess), (State [] guessed (suit:fs) vs) ) (_, _, _, _, sameSuit)
-    | sameSuit == 1 = ( sameSuitGuess guessLength suit, ( State [] (lastHand:guessed) fs (lsuit:vs) ))
-    | sameSuit == 0 = ( sameSuitGuess guessLength suit, ( State [] (lastHand:guessed) fs vs ))
-    where guessLength = length ( (Card lsuit lrank):lastGuess )
-          lastHand = (Card lsuit lrank):lastGuess
+-- loop through and find card
+nextGuess ( lastGuess, (State (hand:hands) guessed [] suits []) ) (matches, _, _, _, _) 
+    -- | (matches > 0) && (dlen == 2) = ( firstMatch, (State hands [] [] [] foundMatch))
+    | otherwise = ( hand, (State hands [] [] [] []) )
+    where dlen = length lastGuess 
+          foundMatch = [ [card] ++ hand | card <- hand, hand <- (buildHands (dlen-1) suits guessed) ]
+          firstMatch = head (head foundMatch)
 
--- filtering is done, now we iterate through to find answers
-nextGuess (((Card suit rank):lastGuess), (State (guess:fc) guesses _ _)) (match, _, _, _, _) 
-    | match > 0 = (guess, (State fc (lastHand:guesses) [] [] ))
-    | otherwise = (guess, (State fc (lastHand:guesses) [] [] ))
-    where lastHand = (Card suit rank):lastGuess
-
-
-
+-- creates a list of potential decks in order to figure out which card has been matched
+-- nextGuess ( lastGuess, (State hands guessed [] suits ((hand:hands'):matches)) ) (matches, _, _, _, _)
+    -- | matches > 0 = ( hand, (State hands guessed [] suits (hands':matches)) )
+    --where guess = 
 
 ------------------------------------------ Helper Functions ----------------------------------------------
+
+-- build a new filtered deck of cards
+buildHands :: Int -> [Suit] -> [[Card]] -> [[Card]]
+buildHands n suits guessed = filterHands ( generatePotentialHands n ( generateSubDeck suits ) ) guessed
 
 -- generates a deck of cards based on available suits
 generateSubDeck :: [Suit] -> [Card]
@@ -98,7 +97,7 @@ generatePotentialHands numCards deck
                         , card4 /= card' 
                         , card4 /= card''
                     ]
-    | otherwise = [[]]
+    | otherwise = error "Program does not handle more than 4 cards"
 
 -- filter out cards in first deck that exist in second deck
 filterHands :: [[Card]] -> [[Card]] -> [[Card]]
