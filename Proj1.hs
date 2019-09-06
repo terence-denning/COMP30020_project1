@@ -48,7 +48,7 @@ nextGuess ( (Card lsuit lrank):lastGuess, (State [] guessed [] suits [] ) ) (_, 
 -- and check them for matches, removing each set if no match is found
 -- feature only working for 2 card hands
 nextGuess ( lastGuess, (State (hand:hands) guessed [] suits [] ) ) (matches,_,_,_,_) 
-    | matches > 0 = (hand, ( State [] [] [] [] (filterHands deck guessed) ))
+    | matches > 0 && (length lastGuess == 2) = (hand, ( State [] [] [] [] (filterHands deck guessed) ))
     | otherwise = ( hand, (State hands guessed [] suits [] ) )
     where dlen = length lastGuess
           subDeck = generatePotentialHands 1 ( generateSubDeck suits )
