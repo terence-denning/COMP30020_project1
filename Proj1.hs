@@ -16,57 +16,64 @@ feedback answers guesses = (
     cardsWithSameSuit guesses answers 
     )
 
--- GameState FilteredCards AlreadyGuessed SuitFilters ValidSuits FinalDeck
-data GameState = State [[Card]] [[Card]] [Suit] [Suit] [[Card]] | NULL
+-- GameState FilteredCards AlreadyGuessed SuitFilters ValidSuits RankFilters ValidRanks
+data GameState = State [[Card]] [[Card]] [Suit] [Suit] [Rank] [Rank] | NULL
 
 initialGuess :: Int -> ([Card],GameState)
-initialGuess n = ( (sameSuitGuess n Diamond), (State [] [sameSuitGuess n Diamond] [Club, Spade, Heart] [] [] ))
-
+initialGuess n = ( firstGuess, (State [] [firstGuess] (tail suitFilters) [] rankFilters [] )) 
+    where rankFilters = ([minBound..maxBound]::[Rank])
+          suitFilters = ([minBound..maxBound])::[Suit]
+          firstGuess = sameSuitGuess n (head suitFilters)
 
 -- next guess
 nextGuess :: ([Card],GameState) -> (Int,Int,Int,Int,Int) -> ([Card],GameState)
 
+
+-- generate new deck based on valid suits and ranks
+nextGuess ( (Card lsuit lrank):lastGuess, (State [] guessed [] suits [] ranks ) ) (_, _, sameRank, _, _)
+    | sameRank > 0 = ( guess', (State (tail hands') (guess':guessed) [] suits [] (lrank:ranks) ) )
+    | otherwise = ( guess, (State (tail hands) (guess:guessed) [] suits [] ranks ) )
+    where dlen = length ( (Card lsuit lrank):lastGuess )
+          hands = buildHands dlen suits ranks guessed
+          hands' = buildHands dlen suits (lrank:ranks) guessed
+          guess = head hands
+          guess' = head hands'
+
 -- filter through cards based on valid suits
-nextGuess ( (Card lsuit lrank):lastGuess, (State [] guessed (s:suitFilters) suits [] ) ) (_, _, _, _, suitMatches)
-    | (s:suitFilters) /= [] && suitMatches > 0 = ( guess, (State [] guessed' suitFilters (lsuit:suits) [] ))
-    | (s:suitFilters) /= [] = ( guess, (State [] guessed' suitFilters suits [] ))
+nextGuess ( (Card lsuit lrank):lastGuess, (State [] guessed (s:suitFilters) suits rankFilters [] ) ) (_, _, _, _, suitMatches)
+    | (s:suitFilters) /= [] && suitMatches > 0 = ( guess, (State [] guessed' suitFilters (lsuit:suits) rankFilters [] ))
+    | (s:suitFilters) /= [] = ( guess, (State [] guessed' suitFilters suits rankFilters [] ))
     where dlen = length ((Card lsuit lrank):lastGuess)
           guess = sameSuitGuess dlen s
           guessed' = guess:guessed
 
--- generate new deck based on available suits
-nextGuess ( (Card lsuit lrank):lastGuess, (State [] guessed [] suits [] ) ) (_, _, _, _, suitMatches)
-    | suitMatches > 0 = ( guess', (State (tail hands') (guess':guessed) [] suits [] ) )
-    | otherwise = ( guess, (State (tail hands) (guess:guessed) [] suits [] ) )
-    where dlen = length ( (Card lsuit lrank):lastGuess )
-          hands = buildHands dlen suits guessed
-          hands' = buildHands dlen (lsuit:suits) guessed
-          guess = head hands
-          guess' = head hands'
+-- filter cards based on rank
+nextGuess ( (Card lsuit lrank):lastGuess, (State [] guessed [] suits (r:rankFilters) ranks ) ) (_, _, sameRank, highRank, suitMatches)
+    | foundRank && fromSuits = ( guess, (State [] guessed' [] (lsuit:suits) rankFilters (lrank:ranks) ) )
+    | fromSuits = ( guess, (State [] guessed' [] (lsuit:suits) rankFilters ranks ) )
+    | foundRank = ( guess, (State [] guessed' [] suits rankFilters (lrank:ranks) ) )
+    | noMoreHigher = ( guess, (State [] guessed' [] suits [] ranks ) )
+    | otherwise = ( guess, (State [] guessed' [] suits rankFilters ranks ) )
+    where dlen = length ((Card lsuit lrank):lastGuess)
+          guess = sameRankGuess dlen r 
+          guessed' = guess:guessed
+          fromSuits = (ranks == []) && (suitMatches > 0)
+          foundRank = sameRank > 0
+          noMoreHigher = highRank == 0
+          
 
--- loop through that deck, if match is found then build out new groups of hands containing those hands
--- and check them for matches, removing each set if no match is found
--- feature only working for 2 card hands
-nextGuess ( lastGuess, (State (hand:hands) guessed [] suits [] ) ) (matches,_,_,_,_) 
-    | matches > 0 && (length lastGuess == 2) = (hand, ( State [] [] [] [] (filterHands deck guessed) ))
-    | otherwise = ( hand, (State hands guessed [] suits [] ) )
-    where dlen = length lastGuess
-          subDeck = generatePotentialHands 1 ( generateSubDeck suits )
-          deck = [ [(head lastGuess)]++hand | hand <- subDeck, not ((head lastGuess) `elem` hand) ] ++ [ [(last lastGuess)]++hand' | hand' <- subDeck, not ( (last lastGuess) `elem` hand' ) ]
-           
-
-
-nextGuess ( lastGuess, ( State _ _ _ _ (f:final) ) ) _ = ( f, ( State [] [] [] [] final ) )
+-- search filtered hands for answer
+nextGuess ( lastGuess, (State (hand:hands) guessed [] suits [] ranks ) ) _ = ( hand, (State hands guessed [] suits [] ranks ) )
 
 ------------------------------------------ Helper Functions ----------------------------------------------
 
 -- build a new filtered deck of cards
-buildHands :: Int -> [Suit] -> [[Card]] -> [[Card]]
-buildHands n suits guessed = filterHands ( generatePotentialHands n ( generateSubDeck suits ) ) guessed
+buildHands :: Int -> [Suit] -> [Rank] -> [[Card]] -> [[Card]]
+buildHands n suits ranks guessed = filterHands ( generatePotentialHands n ( generateSubDeck suits ranks ) ) guessed
 
 -- generates a deck of cards based on available suits
-generateSubDeck :: [Suit] -> [Card]
-generateSubDeck suits = [ (Card suit rank) | suit <- suits, rank <- [minBound..maxBound]::[Rank] ]
+generateSubDeck :: [Suit] -> [Rank] -> [Card]
+generateSubDeck suits ranks = [ (Card suit rank) | suit <- suits, rank <- [minBound..maxBound]::[Rank], rank `elem` ranks ]
 
 -- makes a guess using n number of cards with the same suit
 sameSuitGuess :: Int -> Suit -> [Card]
@@ -75,6 +82,15 @@ sameSuitGuess numCards suit
     | numCards == 3 = [Card suit R2, Card suit R3, Card suit R4]
     | numCards == 4 = [Card suit R2, Card suit R3, Card suit R4, Card suit R5]
     | otherwise = []
+
+-- makes a guess using n number of cards with the same suit
+sameRankGuess :: Int -> Rank -> [Card]
+sameRankGuess numCards rank
+    | numCards == 2 = [Card Diamond rank, Card Heart rank]
+    | numCards == 3 = [Card Diamond rank, Card Heart rank, Card Club rank]
+    | numCards == 4 = [Card Diamond rank, Card Heart rank, Card Club rank, Card Spade rank]
+    | otherwise = []
+
 
 -- generates all potential hands from n number of cards
 generatePotentialHands :: Int -> [Card]-> [[Card]]
